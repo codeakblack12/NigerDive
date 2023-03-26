@@ -1064,7 +1064,7 @@ const WET_BELL_MAIN_UMBILICAL = [
         duration: Infinity
     },
     {
-         name: "Hose Components D 018, Sheet 28",
+        name: "Hose Components D 018, Sheet 28",
         description: "Hose Components D 018, Sheet 28",
         requirement: "Visual examination and function test in last 6 months",
         url: "",
@@ -1072,7 +1072,7 @@ const WET_BELL_MAIN_UMBILICAL = [
         duration: 6
     },
     {
-         name: "Hose Components D 018, Sheet 28",
+        name: "Hose Components D 018, Sheet 28",
         description: "Hose Components D 018, Sheet 28",
         requirement: "Pressure leak test to maximum working pressure in last 2 years",
         url: "",
@@ -1717,7 +1717,7 @@ const GENERIC_DATA = [
         data: WET_BELL
     },
     {
-        id: "Well Bell Main Umbilical",
+        id: "Wet Bell Main Umbilical",
         data: WET_BELL_MAIN_UMBILICAL
     },
     {
@@ -1725,7 +1725,7 @@ const GENERIC_DATA = [
         data: DIVER_HEATING_SYSTEM
     },
     {
-        id: "Divers' Unbilicals",
+        id: "Divers' Umbilicals",
         data: DIVERS_UMBILICALS
     },
     {
