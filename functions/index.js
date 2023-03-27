@@ -540,7 +540,7 @@ exports.get_recent_files = functions.https.onRequest(async (request, response) =
 
             const files = await admin.firestore().collection('files').orderBy('created_at').limit(5).get().then(snapshot => {
                 snapshot.forEach(doc => {
-                    const file = doc.data()
+                    let file = doc.data()
                     all_systems.map((val) => {
                         if(val.id === file.system){
                             file['system_name'] = val.name
@@ -556,6 +556,7 @@ exports.get_recent_files = functions.https.onRequest(async (request, response) =
                             file['subfolder_name'] = val.name
                         }
                     })
+                    file['created_at'] = file.created_at.toDate()
                     delete file?.requirement
                     delete file?.description
                     delete file?.test_date
@@ -700,7 +701,7 @@ exports.get_dashboard = functions.https.onRequest(async (request, response) => {
         let all_files = []
 
         try {
-            const sys = await admin.firestore().collection('systems').orderBy('created_at').get().then(snapshot => {
+            const sys = await admin.firestore().collection('systems').orderBy('name').get().then(snapshot => {
                 snapshot.forEach(doc => {
                     const system = doc.data()
                     all_systems.push(system)
@@ -811,6 +812,13 @@ exports.get_subfolders_by_folder = functions.https.onRequest(async (request, res
             const files = await admin.firestore().collection('files').where("folder", "==", folder_id).orderBy('created_at').get().then(snapshot => {
                 snapshot.forEach(doc => {
                     const file = doc.data()
+                    file['created_at'] = file.created_at?.toDate()
+                    file['test_date'] = file.test_date?.toDate()
+                    if(file.due_date){
+                        file['due_date'] = file.due_date?.toDate()
+                    }else{
+                        file['due_date'] = null
+                    }
                     all_files.push(file)
                 })
             }).catch(err => {
@@ -909,21 +917,21 @@ exports.attach_folder_id = functions.firestore.document('/folders/{documentId}')
         const tesDate = new Date()
         const tesDate_ = new Date(tesDate)
         let expDate = null
-        if(val?.duration && val?.duration !== Infinity){
+        if(Number(val?.duration) > 0){
             expDate = new Date(tesDate_.setMonth(tesDate_.getMonth() + val?.duration))
         }
 
         const payload = {
             name: val?.name,
-            created_at: new Date().toUTCString(),
+            created_at: new Date(),
             folder: id,
             system: snap.data().system,
             description: val?.name,
             requirement: val?.requirement,
             duration: val?.duration,
             url: val?.url,
-            test_date: tesDate.toUTCString(),
-            due_date: expDate ? expDate.toUTCString() : expDate
+            test_date: tesDate,
+            due_date: expDate
         }
         subfolders_.filter((vall) => {
             if(val?.subfolder?.toLowerCase() === vall?.name?.toLowerCase()){

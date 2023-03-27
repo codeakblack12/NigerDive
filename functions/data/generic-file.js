@@ -33,7 +33,7 @@ const DIVE_CONTROL = [
         requirement: "Internal pressure test of all valves, pipework, fittings, etc. to 1.5 times maximum working pressure when new",
         url: "",
         subfolder: "Pipework and Valves",
-        duration: Infinity
+        duration: null
     },
     {
         name: "Relief Valve Testing D 018, Sheet 24.3",
@@ -83,7 +83,7 @@ const DIVE_CONTROL = [
         requirement: "Whether fixed or portable it should be in accordance with manufacturer's specification and fit for the purpose it will be used for",
         url: "",
         subfolder: "Firefighting",
-        duration: Infinity
+        duration: null
     },
     {
         name: "Firefighting Testing D 018, Sheet 15 & 16",
@@ -187,7 +187,7 @@ const TWINLOCK_AIR_CHAMBER = [
         requirement: "Manufactured in accordance with recognised standard and fit for purpose. Further information in IMCA D 047",
         url: "",
         subfolder: "Viewports",
-        duration: Infinity
+        duration: null
     },
     {
         name: "Viewport Testing",
@@ -195,7 +195,7 @@ const TWINLOCK_AIR_CHAMBER = [
         requirement: "Overpressure tested to 1.25 times maximum rated working pressure when new or other testing to establish structural integrity as required by the ASME PVHO standard",
         url: "",
         subfolder: "Viewports",
-        duration: Infinity
+        duration: null
     },
     {
         name: "Viewport Testing",
@@ -228,7 +228,7 @@ const TWINLOCK_AIR_CHAMBER = [
         requirement: "Whether fixed or portable it should be in accordance with manufacturer's specification and fit for the purpose it will be used for",
         url: "",
         subfolder: "Firefighting",
-        duration: Infinity
+        duration: null
     },
     {
         name: "Firefighting Testing D 018, Sheet 15 & 16",
@@ -269,7 +269,7 @@ const TWINLOCK_AIR_CHAMBER = [
         requirement: "All electric penetrators must be certified by a competent person (IMCA D 018 category 3 or 4) as fit for purpose",
         url: "",
         subfolder: "Chamber External",
-        duration: Infinity
+        duration: null
     },
     {
         name: "Medical Lock  Pipework Testing D 018, Sheet 24.1, 34",
@@ -277,7 +277,7 @@ const TWINLOCK_AIR_CHAMBER = [
         requirement: "Internal pressure test of all valves, pipework, fittings etc. to 1.5 times maximum working pressure when new",
         url: "",
        subfolder: "Chamber External",
-        duration: Infinity
+        duration: null
     },
     {
         name: "Medical Lock  Pipework Testing D 018, Sheet 24.1, 34",
@@ -325,7 +325,7 @@ const TWINLOCK_AIR_CHAMBER = [
         requirement: "Internal pressure test of all valves, pipework, fittings, etc. to 1.5 times maximum working pressure when new",
         url: "",
        subfolder: "Chamber External",
-        duration: Infinity
+        duration: null
     },
     {
         name: "Pipework Testing D 018, Sheets 24.1 & 24.2",
@@ -398,7 +398,7 @@ const TWINLOCK_AIR_CHAMBER = [
         requirement: "Internal pressure test of all valves, pipework, fittings, etc. to 1.5 times maximum working pressure when new",
         url: "",
         subfolder: "Chamber Internal",
-        duration: Infinity
+        duration: null
     },
     {
         name: "Pipework Testing D 018, Sheets 24.1 & 24.2",
@@ -431,7 +431,7 @@ const TWINLOCK_AIR_CHAMBER = [
         requirement: "Internal pressure test of all valves, pipework, fittings, etc. to 1.5 times maximum working pressure when new",
         url: "",
         subfolder: "Control Panel",
-        duration: Infinity
+        duration: null
     },
     {
         name: "Pipework Testing D 018, Sheet 24.1 & 24.2",
@@ -516,7 +516,7 @@ const DIVER_LAUNCH_AND_RECOVERY = [
         requirement: "A full company approved load test procedure should be provided for the system identifying all components included in the testing such as, but not limited to, A frame; sheaves; wire rope terminations; winches etc. This should include a diagram showing the critical areas that are to be subjected to NDE",
         url: "",
         subfolder: "General",
-        duration: Infinity
+        duration: null
     },
     // Man-Riding Winches
     {
@@ -542,7 +542,7 @@ const DIVER_LAUNCH_AND_RECOVERY = [
         requirement: "There have been a number of problems in the past with high tensile bell wire ropes which appear to lose strength even when properly stored. For this reason a test to destruction should be carried out when any high tensile bell wire rope is first put in to service to establish the actual minimum breaking force of the wire at that time. Provided the test result does not fall below the manufacturer's MBF, future destructive test results should be compared to that original figure (the base value), rather than to any claim (or test certificate) provided by the manufacturer. If the test to destruction when the wire is first put into service does indicate a MBF below that of the manufacturer, then the manufacturer's MBF should always be adopted as the base value against which to monitor future deterioration in breaking force. However if the result falls 10% below the MBF then the rope should be discarded. The sample tested to destruction should prove an adequate safety factor exists. This is normally 8 times the SWL",
         url: "",
         subfolder: "Main Lift Wire",
-        duration: Infinity
+        duration: null
     },
     {
         name: "Wire Testing D 018, Sheet 29.1",
@@ -577,7 +577,7 @@ const DIVER_LAUNCH_AND_RECOVERY = [
         One of the tensile test samples should be dismantled and the internals examined`,
         url: "",
         subfolder: "Main Lift Wire",
-        duration: Infinity
+        duration: null
     },
     // Secondary Recovery
     {
@@ -612,7 +612,7 @@ const DIVER_LAUNCH_AND_RECOVERY = [
         The sample tested to destruction should prove an adequate safety factor exists. This is normally 8 times the SWL"`,
         url: "",
         subfolder: "Secondary Recovery",
-        duration: Infinity
+        duration: null
     },
     {
         name: "Wire Testing D 018, Sheet 29.1",
@@ -647,7 +647,7 @@ const DIVER_LAUNCH_AND_RECOVERY = [
         One of the tensile test samples should be dismantled and the internals examined.`,
         url: "",
         subfolder: "Secondary Recovery",
-        duration: Infinity
+        duration: null
     },
     // Hydraulics
     {
@@ -749,7 +749,7 @@ const DIVER_LAUNCH_AND_RECOVERY = [
         requirement: "Whether fixed or portable it should be in accordance with manufacturer's specification and fit for the purpose it will be used for",
         url: "",
         subfolder: "Firefighting",
-        duration: Infinity
+        duration: null
     },
     {
         name: "Firefighting Testing D 018, Sheet 15 & 16",
@@ -818,7 +818,7 @@ const DIVING_BASKET = [
         requirement: "For any basket manufactured after 1 January 2014, documentation should be available showing clearly the designed SWL which should be equal to or greater than the gross weight marked on it (see 1.12 below)",
         url: "",
         subfolder: "General",
-        duration: Infinity
+        duration: null
     },
     {
         name: "Load Testing D 018, Sheet 3",
@@ -875,7 +875,7 @@ const DIVING_BASKET = [
         requirement: "Internal pressure test of all valves, pipework, fittings, etc. to 1.5 times maximum working pressure when new",
         url: "",
         subfolder: "Emergency Cylinder",
-        duration: Infinity
+        duration: null
     },
     {
         name: "Pipework Testing D 018, Sheet 24.1",
@@ -951,7 +951,7 @@ const WET_BELL = [
         requirement: "A test should have been carried out to demonstrate that the wet bell, fully outfitted and without divers, remains negatively buoyant when the dome is fully filled with air. Its in-water weight during this test should be noted on the certificate",
         url: "",
         subfolder: "General",
-        duration: Infinity
+        duration: null
     },
     // Air Cylinder(s)
     {
@@ -993,7 +993,7 @@ const WET_BELL = [
         requirement: "Internal pressure test of all valves, pipework, fittings, etc. to 1.5 times maximum working pressure when new",
         url: "",
         subfolder: "Outfitting",
-        duration: Infinity
+        duration: null
     },
     {
          name: "Pipework Testing D 018, Sheet 24.1",
@@ -1061,7 +1061,7 @@ const WET_BELL_MAIN_UMBILICAL = [
         requirement: "When new, hydro test to 1.5 times maximum working pressure or as recommended",
         url: "",
         subfolder: "Testing",
-        duration: Infinity
+        duration: null
     },
     {
         name: "Hose Components D 018, Sheet 28",
@@ -1086,7 +1086,7 @@ const WET_BELL_MAIN_UMBILICAL = [
         requirement: "Tested and certified as in Testing",
         url: "",
         subfolder: "Spare",
-        duration: Infinity
+        duration: null
     },
     {
         name: "Pre-use Testing",
@@ -1094,7 +1094,7 @@ const WET_BELL_MAIN_UMBILICAL = [
         requirement: "Leak tested at intended working pressure (and flushed through if necessary) before use",
         url: "",
         subfolder: "Spare",
-        duration: Infinity
+        duration: null
     },
 ]
 
@@ -1106,7 +1106,7 @@ const DIVER_HEATING_SYSTEM = [
         requirement: "Whether fixed or portable it should be in accordance with manufacturer's specification and fit for the purpose it will be used for",
         url: "",
         subfolder: "Firefighting",
-        duration: Infinity
+        duration: null
     },
     {
         name: "Firefighting Testing D 018, Sheet 15 & 16",
@@ -1155,7 +1155,7 @@ const DIVER_HEATING_SYSTEM = [
         requirement: "Pressure test to 1.5 times maximum working pressure when new",
         url: "",
         subfolder: "Testing",
-        duration: Infinity
+        duration: null
     },
     {
         name: "Pipework D 018, Sheet 24.1",
@@ -1247,7 +1247,7 @@ const DIVERS_UMBILICALS = [
         requirement: "When new, hydro test to 1.5 times maximum working pressure or as recommended",
         url: "",
         subfolder: "Testing",
-        duration: Infinity
+        duration: null
     },
     {
         name: "Hose Components D 018, Sheet 28",
@@ -1365,7 +1365,7 @@ const DIVERS_PERSONAL_EQUIPMENT = [
         requirement: "Internal pressure test of all valves, pipework, fittings etc. to 1.5 times maximum working pressure when new",
         url: "",
         subfolder: "Whips and Connectors",
-        duration: Infinity
+        duration: null
     },
     {
         name: "Pipework Testing D 018, Sheet 24.1",
@@ -1409,7 +1409,7 @@ const COMPRESSORS = [
         requirement: "Whether fixed or portable it should be in accordance with manufacturer's specification and fit for the purpose it will be used for",
         url: "",
         subfolder: "Firefighting",
-        duration: Infinity
+        duration: null
     },
     {
         name: "Firefighting Testing D 018, Sheet 15 & 16",
@@ -1491,7 +1491,7 @@ const COMPRESSORS = [
         requirement: "Pressure test to 1.5 times maximum working pressure when new",
         url: "",
         subfolder: "Pipework",
-        duration: Infinity
+        duration: null
     },
     {
         name: "Testing D 018, Sheet 24.1 and 24.2",
@@ -1594,7 +1594,7 @@ const HP_AIR_AND_GAS_STORAGE = [
         requirement: "Pressure test to 1.5 times maximum working pressure when new",
         url: "",
         subfolder: "Testing",
-        duration: Infinity
+        duration: null
     },
     {
         name: "Pipework Testing D 018, Sheet 24.1 & 24.2",
@@ -1602,7 +1602,7 @@ const HP_AIR_AND_GAS_STORAGE = [
         requirement: "Internal cleanliness verified to appropriate standard",
         url: "",
         subfolder: "Testing",
-        duration: Infinity
+        duration: null
     },
     {
         name: "Pipework Testing D 018, Sheet 24.1 & 24.2",
@@ -1659,7 +1659,7 @@ const HP_AIR_AND_GAS_STORAGE = [
         requirement: "Whether fixed or portable it should be in accordance with manufacturer's specification and fit for the purpose it will be used for",
         url: "",
         subfolder: "Firefighting",
-        duration: Infinity
+        duration: null
     },
     {
         name: "Firefighting Testing D 018, Sheet 15 & 16",
