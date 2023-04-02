@@ -1,6 +1,8 @@
+// import { customAlphabet } from "nanoid";
 const functions = require("firebase-functions");
 const admin = require('firebase-admin');
 const axios = require('axios');
+const { customAlphabet } = require("nanoid");
 const { GENERIC_DATA } = require("./data/generic-file");
 const FormData = require('form-data');
 const cors = require('cors')({
@@ -13,6 +15,18 @@ admin.initializeApp()
 
 exports.create_system = functions.https.onRequest(async (request, response) => {
     cors(request, response, async () => {
+        const { authorization } = request.headers
+
+        if(!authorization){
+            return res.status(401).send({message: 'Unauthorized'})
+        }
+
+        const decodedToken = await admin.auth().verifyIdToken(authorization)
+
+        // if(new Date(decodedToken.exp) < new Date()){
+        //     return res.status(401).send({message: 'Unauthorized'})
+        // }
+
         const systemName = request.body.name
 
         try {
@@ -57,6 +71,17 @@ exports.create_system = functions.https.onRequest(async (request, response) => {
 
 exports.create_subfolder = functions.https.onRequest(async (request, response) => {
     cors(request, response, async () => {
+        const { authorization } = request.headers
+
+        if(!authorization){
+            return res.status(401).send({message: 'Unauthorized'})
+        }
+
+        const decodedToken = await admin.auth().verifyIdToken(authorization)
+
+        // if(new Date(decodedToken.exp) < new Date()){
+        //     return res.status(401).send({message: 'Unauthorized'})
+        // }
         const subfolderName = request.body.name
 
         try {
@@ -101,6 +126,17 @@ exports.create_subfolder = functions.https.onRequest(async (request, response) =
 
 exports.create_folder = functions.https.onRequest(async (request, response) => {
     cors(request, response, async () => {
+        const { authorization } = request.headers
+
+        if(!authorization){
+            return res.status(401).send({message: 'Unauthorized'})
+        }
+
+        const decodedToken = await admin.auth().verifyIdToken(authorization)
+
+        // if(new Date(decodedToken.exp) < new Date()){
+        //     return res.status(401).send({message: 'Unauthorized'})
+        // }
         const folderName = request.body.name
         const system_id = request.body.system
 
@@ -169,6 +205,17 @@ exports.create_folder = functions.https.onRequest(async (request, response) => {
 
 exports.create_file = functions.https.onRequest(async (request, response) => {
     cors(request, response, async () => {
+        const { authorization } = request.headers
+
+        if(!authorization){
+            return res.status(401).send({message: 'Unauthorized'})
+        }
+
+        const decodedToken = await admin.auth().verifyIdToken(authorization)
+
+        // if(new Date(decodedToken.exp) < new Date()){
+        //     return res.status(401).send({message: 'Unauthorized'})
+        // }
         const fileName = request.body.name
         const folder_id = request.body.folder
         const system_id = request.body.system
@@ -287,12 +334,127 @@ exports.create_file = functions.https.onRequest(async (request, response) => {
     })
 });
 
+exports.create_user_access = functions.https.onRequest(async (request, response) => {
+    cors(request, response, async () => {
+        const { authorization } = request.headers
+
+        if(!authorization){
+            return res.status(401).send({message: 'Unauthorized'})
+        }
+
+        const decodedToken = await admin.auth().verifyIdToken(authorization)
+
+        // if(new Date(decodedToken.exp) < new Date()){
+        //     return res.status(401).send({message: 'Unauthorized'})
+        // }
+
+        const name = request.body.name
+        const email = request.body.email
+        const role = request.body.role
+        const systems = request.body.systems
+        const expiration = request.body.expiration
+
+        const nanoid = customAlphabet('012345789abcdefghijklmnopqrstABCDEFGHIJKLMNOPQRSTUVWXYZ?')
+        const generatedPassword = nanoid(15);
+
+        let role_name = ''
+
+        const all_roles = await admin.firestore().collection('roles').where(`id`, "==", role).get().then(snapshot => {
+            snapshot.forEach(doc => {
+                const role_ = doc.data()
+                role_name = role_.name
+            })
+        }).catch(err => {
+            response.status(400)
+            response.json({message: `Invalid permission!`});
+            throw new Error("Seems something went wrong!")
+        })
+
+        if(
+            !name || name === '' || !email || email === '' || !role || role_name === "" || !role_name ||
+            systems?.length < 1 || !expiration || !expiration || (new Date(expiration) < new Date())
+        ){
+            response.status(400)
+            response.json({message: `Invalid query parameters!`});
+            throw new Error("Seems something went wrong!")
+        }
+
+        admin.auth().createUser({
+            email: email,
+            emailVerified: true,
+            password: generatedPassword,
+            displayName: name,
+            // photoURL: "http://www.example.com/12345678/photo.png",
+            disabled: false,
+            role: role_name
+        })
+        .then(async (userRecord) => {
+            let system_names = []
+
+            const all_systems = await admin.firestore().collection('systems').where(`id`, "in", systems).get().then(snapshot => {
+                snapshot.forEach(doc => {
+                    const sys = doc.data()
+                    let system_permissions = sys.permissions || []
+                    system_names.push({
+                        id: sys.id,
+                        name: sys.name
+                    })
+
+                    doc.ref.update({
+                        permissions: system_permissions?.concat([userRecord.uid])
+                    })
+                })
+            }).catch(err => {
+                response.status(400)
+                response.json({message: `Invalid system!`});
+                throw new Error("Seems something went wrong!")
+            })
+
+            const payload = {
+                name: name,
+                email: email,
+                user_id: userRecord.uid,
+                created_at: new Date(),
+                expiration: new Date(expiration),
+                systems: system_names,
+                role: {
+                    id: role,
+                    name: role_name
+                }
+            }
+            const writeResult = await admin.firestore().collection('guests').add(payload);
+
+            console.log("Successfully created new user:", userRecord.uid);
+
+            response.json({message: `Successful`});
+        })
+        .catch(function(error) {
+            console.log("Error creating new user:", error);
+            response.status(400)
+            response.json({message: "Error creating user!"});
+            throw new Error("Error creating user!")
+        });
+    })
+})
+
 // -----------------------------------------------------------------------------------
 
 // UPDATE
 
 exports.update_file = functions.https.onRequest(async (request, response) => {
     cors(request, response, async () => {
+        const { authorization } = request.headers
+
+        if(!authorization){
+            return res.status(401).send({message: 'Unauthorized'})
+        }
+
+        const decodedToken = await admin.auth().verifyIdToken(authorization)
+
+        // if(new Date(decodedToken.exp) < new Date()){
+        //     return res.status(401).send({message: 'Unauthorized'})
+        // }
+
         const id = request.body.id
         const duration = request.body.duration //months
         const requirement = request.body.requirement
@@ -314,6 +476,7 @@ exports.update_file = functions.https.onRequest(async (request, response) => {
             .where(`id`, "==", id)
             .get().then(snapshot => {
                 snapshot.forEach(doc => {
+                    console.log(doc)
                     const tesDate = new Date(testDate)
                     const tesDate_ = new Date(tesDate)
                     let expDate = null
@@ -321,11 +484,11 @@ exports.update_file = functions.https.onRequest(async (request, response) => {
                         expDate = new Date(tesDate_.setMonth(tesDate_.getMonth() + duration))
                     }
 
-                    doc.update({
+                    doc.ref.update({
                         name: description,
-                        created_at: new Date().toUTCString(),
-                        test_date: new Date(testDate).toUTCString(),
-                        due_date: new Date(expDate).toUTCString(),
+                        created_at: new Date(),
+                        test_date: new Date(testDate),
+                        due_date: new Date(expDate),
                         description: description,
                         requirement: requirement,
                         duration: Number(duration),
@@ -407,6 +570,7 @@ exports.get_expired_by_month = functions.https.onRequest(async (request, respons
         let all_files = []
         try {
             const files = await admin.firestore().collection('files')
+            .where('due_date', '!=', null)
             .where(`due_date`, ">=", start_date)
             .where(`due_date`, "<", end_date)
             .orderBy('due_date').get().then(snapshot => {
@@ -445,6 +609,7 @@ exports.get_expired_by_month = functions.https.onRequest(async (request, respons
             if(count_data.length > 0){
                 all_slots.push({
                     day: val,
+                    date: count_data[0]?.due_date,
                     count: count_data.length
                 })
             }
@@ -456,44 +621,79 @@ exports.get_expired_by_month = functions.https.onRequest(async (request, respons
 
 exports.get_expired_by_day = functions.https.onRequest(async (request, response) => {
     cors(request, response, async () => {
+        const day = request.body.day
         const month = request.body.month
         const year = request.body.year
 
-        let end_month = month
-        let end_year = year
-
-        if(month < 1 || month > 12 || !month || !year){
+        if(month < 1 || month > 12 || !month || !year || !day || day > 31 || day < 1){
             response.status(400).json({message: `Invalid query!`});
             throw new Error(`Seems something went wrong!`)
         }
 
-        if(month === 12){
-            end_month = 01
-            end_year = year + 1
-        }else{
-            end_month = `${month > 9 ? "" : "0"}${month + 1}`
-        }
+        const selected_date = new Date(`${year}-${month > 9 ? month : `0${month}`}-${day > 9 ? day : `0${day}`}`)
+        const next_date = new Date(selected_date)
+        next_date.setDate(next_date.getDate() + 1)
 
-        const start_date = admin.firestore.Timestamp.fromDate(new Date(`${year}-${month > 9 ? month : `0${month}`}-01`))
-        const end_date = admin.firestore.Timestamp.fromDate(new Date(`${end_year}-${end_month}-01`))
+        const start_date = admin.firestore.Timestamp.fromDate(selected_date)
+        const end_date = admin.firestore.Timestamp.fromDate(next_date)
 
         let all_files = []
+        let all_systems = []
+        let all_folders = []
+        let all_subfolders = []
+
         try {
+
+            const sys = await admin.firestore().collection('systems').orderBy('created_at').get().then(snapshot => {
+                snapshot.forEach(doc => {
+                    const system = doc.data()
+                    all_systems.push(system)
+                })
+            })
+
+            const folders = await admin.firestore().collection('folders').orderBy('created_at').get().then(snapshot => {
+                snapshot.forEach(doc => {
+                    const folder = doc.data()
+                    all_folders.push(folder)
+                })
+            })
+
+            const subfolders = await admin.firestore().collection('subfolders').orderBy('created_at').get().then(snapshot => {
+                snapshot.forEach(doc => {
+                    const subfolder = doc.data()
+                    all_subfolders.push(subfolder)
+                })
+            })
+
             const files = await admin.firestore().collection('files')
+            .where('due_date', '!=', null)
             .where(`due_date`, ">=", start_date)
             .where(`due_date`, "<", end_date)
             .orderBy('due_date').get().then(snapshot => {
                 snapshot.forEach(doc => {
-                    const file = doc.data()
-
-                    file['due_date'] = file.due_date.toDate()
-                    delete file.duration
-                    delete file.created_at
-                    delete file.description
-                    delete file.requirement
-                    delete file.url
-                    delete file.test_date
-
+                    let file = doc.data()
+                    all_systems.map((val) => {
+                        if(val.id === file.system){
+                            file['system_name'] = val.name
+                        }
+                    })
+                    all_folders.map((val) => {
+                        if(val.id === file.folder){
+                            file['folder_name'] = val.name
+                        }
+                    })
+                    all_subfolders.map((val) => {
+                        if(val.id === file.subfolder){
+                            file['subfolder_name'] = val.name
+                        }
+                    })
+                    file['created_at'] = file.created_at.toDate()
+                    delete file?.requirement
+                    delete file?.description
+                    delete file?.test_date
+                    delete file?.due_date
+                    delete file?.url
+                    delete file?.duration
                     all_files.push(file)
                 })
             }).catch(err => {
@@ -509,6 +709,90 @@ exports.get_expired_by_day = functions.https.onRequest(async (request, response)
 
 
 exports.get_recent_files = functions.https.onRequest(async (request, response) => {
+    cors(request, response, async () => {
+        const { authorization } = request.headers
+
+        if(!authorization){
+            return res.status(401).send({message: 'Unauthorized'})
+        }
+
+        const decodedToken = await admin.auth().verifyIdToken(authorization)
+
+        // if(new Date(decodedToken.exp) < new Date()){
+        //     return res.status(401).send({message: 'Unauthorized'})
+        // }
+
+        const uid = decodedToken.uid
+
+        let all_files = []
+        let all_systems = []
+        let all_folders = []
+        let all_subfolders = []
+
+        try {
+            const sys = await admin.firestore().collection('systems').where('permissions', 'array-contains', uid).orderBy('created_at').get().then(snapshot => {
+                snapshot.forEach(doc => {
+                    const system = doc.data()
+                    all_systems.push(system)
+                })
+            })
+
+            const folders = await admin.firestore().collection('folders').orderBy('created_at').get().then(snapshot => {
+                snapshot.forEach(doc => {
+                    const folder = doc.data()
+                    all_folders.push(folder)
+                })
+            })
+
+            const subfolders = await admin.firestore().collection('subfolders').orderBy('created_at').get().then(snapshot => {
+                snapshot.forEach(doc => {
+                    const subfolder = doc.data()
+                    all_subfolders.push(subfolder)
+                })
+            })
+
+            const avail_systems = all_systems.map((val) => {return val?.id})
+
+            const files = await admin.firestore().collection('files').where('system', 'in', avail_systems).orderBy('created_at').limit(5).get().then(snapshot => {
+                snapshot.forEach(doc => {
+                    let file = doc.data()
+                    all_systems.map((val) => {
+                        if(val.id === file.system){
+                            file['system_name'] = val.name
+                        }
+                    })
+                    all_folders.map((val) => {
+                        if(val.id === file.folder){
+                            file['folder_name'] = val.name
+                        }
+                    })
+                    all_subfolders.map((val) => {
+                        if(val.id === file.subfolder){
+                            file['subfolder_name'] = val.name
+                        }
+                    })
+                    file['created_at'] = file.created_at.toDate()
+                    delete file?.requirement
+                    delete file?.description
+                    delete file?.test_date
+                    delete file?.due_date
+                    delete file?.url
+                    delete file?.duration
+                    all_files.push(file)
+                })
+            }).catch(err => {
+                throw new Error(err)
+            })
+        } catch (error) {
+            console.log(error)
+            throw new Error(error)
+        }
+
+        response.json({data: all_files})
+    })
+});
+
+exports.get_upcoming = functions.https.onRequest(async (request, response) => {
     cors(request, response, async () => {
 
         let all_files = []
@@ -538,7 +822,9 @@ exports.get_recent_files = functions.https.onRequest(async (request, response) =
                 })
             })
 
-            const files = await admin.firestore().collection('files').orderBy('created_at').limit(5).get().then(snapshot => {
+            const files = await admin.firestore().collection('files')
+            .where('due_date', '!=', null)
+            .orderBy('due_date').limit(1).get().then(snapshot => {
                 snapshot.forEach(doc => {
                     let file = doc.data()
                     all_systems.map((val) => {
@@ -556,11 +842,11 @@ exports.get_recent_files = functions.https.onRequest(async (request, response) =
                             file['subfolder_name'] = val.name
                         }
                     })
-                    file['created_at'] = file.created_at.toDate()
+                    file['due_date'] = file.due_date.toDate()
                     delete file?.requirement
                     delete file?.description
                     delete file?.test_date
-                    delete file?.due_date
+                    delete file?.created_at
                     delete file?.url
                     delete file?.duration
                     all_files.push(file)
@@ -642,6 +928,71 @@ exports.get_folders = functions.https.onRequest(async (request, response) => {
     })
 });
 
+exports.get_guests = functions.https.onRequest(async (request, response) => {
+    cors(request, response, async () => {
+
+        let all_guests = []
+
+        try {
+            const files = await admin.firestore().collection('guests').orderBy('created_at').get().then(snapshot => {
+                snapshot.forEach(doc => {
+                    const guest = doc.data()
+                    // guest['created_at'] = guest.created_at.toDate()
+                    // guest['expiration'] = guest.expiration.toDate()
+
+                    guest['period'] = {
+                        created_at: guest.created_at.toDate(),
+                        expiration: guest.expiration.toDate()
+                    }
+
+                    delete guest.created_at
+                    delete guest.expiration
+
+                    all_guests.push(guest)
+                })
+            }).catch(err => {
+                response.status(400)
+                response.json({message: `Error getting guests!`});
+                throw new Error(err)
+            })
+        } catch (error) {
+            response.status(400)
+            response.json({message: `Error getting guests!`});
+            throw new Error(error)
+        }
+
+        response.json({data: all_guests})
+
+    })
+});
+
+exports.get_roles = functions.https.onRequest(async (request, response) => {
+    cors(request, response, async () => {
+
+        let all_roles = []
+
+        try {
+            const files = await admin.firestore().collection('roles').orderBy('name').get().then(snapshot => {
+                snapshot.forEach(doc => {
+                    const role = doc.data()
+                    all_roles.push(role)
+                })
+            }).catch(err => {
+                response.status(400)
+                response.json({message: `Error getting roles!`});
+                throw new Error(err)
+            })
+        } catch (error) {
+            response.status(400)
+            response.json({message: `Error getting roles!`});
+            throw new Error(error)
+        }
+
+        response.json({data: all_roles})
+
+    })
+});
+
 exports.get_folder = functions.https.onRequest(async (request, response) => {
     cors(request, response, async () => {
         const folder_id = request.body.folder
@@ -696,12 +1047,26 @@ exports.get_folder = functions.https.onRequest(async (request, response) => {
 
 exports.get_dashboard = functions.https.onRequest(async (request, response) => {
     cors(request, response, async () => {
+        const { authorization } = request.headers
+
+        if(!authorization){
+            return res.status(401).send({message: 'Unauthorized'})
+        }
+
+        const decodedToken = await admin.auth().verifyIdToken(authorization)
+
+        // if(new Date(decodedToken.exp) < new Date()){
+        //     return res.status(401).send({message: 'Unauthorized'})
+        // }
+
+        const uid = decodedToken.uid
+
         let all_systems = []
         let all_folders = []
         let all_files = []
 
         try {
-            const sys = await admin.firestore().collection('systems').orderBy('name').get().then(snapshot => {
+            const sys = await admin.firestore().collection('systems').where('permissions', 'array-contains', uid).orderBy('name').get().then(snapshot => {
                 snapshot.forEach(doc => {
                     const system = doc.data()
                     all_systems.push(system)
@@ -787,9 +1152,22 @@ exports.get_dashboard = functions.https.onRequest(async (request, response) => {
 
 exports.get_subfolders_by_folder = functions.https.onRequest(async (request, response) => {
     cors(request, response, async () => {
+        const { authorization } = request.headers
+
+        if(!authorization){
+            return res.status(401).send({message: 'Unauthorized'})
+        }
+
+        const decodedToken = await admin.auth().verifyIdToken(authorization)
+
+        // if(new Date(decodedToken.exp) < new Date()){
+        //     return res.status(401).send({message: 'Unauthorized'})
+        // }
+
         const folder_id = request.body.id
 
         let all_subfolders = []
+        let folder = []
         let all_files = []
 
         if(!folder_id || folder_id === ""){
@@ -809,6 +1187,18 @@ exports.get_subfolders_by_folder = functions.https.onRequest(async (request, res
                 throw new Error(err)
             })
 
+            const folder_ = await admin.firestore()
+            .collection('folders')
+            .where(`id`, "==", folder_id)
+            .get().then(snapshot => {
+                snapshot.forEach(doc => {
+                    const fold = doc.data()
+                    folder.push(fold)
+                })
+            }).catch(err => {
+                throw new Error(err)
+            })
+
             const files = await admin.firestore().collection('files').where("folder", "==", folder_id).orderBy('created_at').get().then(snapshot => {
                 snapshot.forEach(doc => {
                     const file = doc.data()
@@ -819,6 +1209,14 @@ exports.get_subfolders_by_folder = functions.https.onRequest(async (request, res
                     }else{
                         file['due_date'] = null
                     }
+                    const today = new Date().getTime()
+                    const exp_date = new Date(file?.due_date).getTime()
+                    const days_left = Math.ceil((exp_date - today)/(1000 * 3600 * 24))
+                    file['status'] = days_left > 30 ? ("green") : (days_left < 30 && days_left > 0 ? "yellow" : "red")
+                    if(!file?.due_date){
+                        file['status'] = "green"
+                    }
+
                     all_files.push(file)
                 })
             }).catch(err => {
@@ -847,7 +1245,7 @@ exports.get_subfolders_by_folder = functions.https.onRequest(async (request, res
 
             })
 
-            response.json({data: result})
+            response.json({folder: folder[0]?.name, data: result})
 
         } catch (error) {
             throw new Error(error)
@@ -964,41 +1362,53 @@ exports.pyyr_hook = functions.https.onRequest(async (request, response) => {
 
 	const { body } = request;
 
-    console.log(body)
     const event = body.event
     const data = body.data
 
-    console.log(body)
-    console.log(data)
-    if (event !== 'payment.successful') {
-        response.status(200).end();
-    }
-    console.log(data?.items)
-    console.log(data?.customer_detail)
-
     const email_ = data?.items
     const customer_email = data?.customer_detail?.email
+    const transactionCode = data?.meta_data?.reference
+    const transactionCode_ = data?.reference
 
-    const transactionCode = data?.reference
+    if (data?.status === 'failed' && data?.payment_type === "payout") {
+        const formdata = new FormData();
+        formdata.append('email', data?.meta_data?.email);
+        formdata.append('cancelTransaction', transactionCode);
 
-    const formdata = new FormData();
-    formdata.append('email', email_ ? email_[0]?.name : customer_email);
-    formdata.append('transactionCode', transactionCode);
-    formdata.append('status', data.status);
+        const res = await axios({
+            url: `https://boltspecta.com/posting.php`,
+            headers: formdata.getHeaders(),
+            method: 'POST',
+            data: formdata,
+        });
 
-    const res = await axios({
-        url: `https://boltspecta.com/posting.php`,
-        headers: formdata.getHeaders(),
-        method: 'POST',
-        data: formdata,
-    });
-
-    console.log(res)
-
-    if(res?.status){
-        response.status(200).end();
+        if(res?.status){
+            response.status(200).end();
+        }else{
+            response.status(500).end()
+        }
     }else{
-        response.status(500).end()
+        if (event !== 'payment.successful') {
+            response.status(200).end();
+        }
+
+        const formdata = new FormData();
+        formdata.append('email', email_ ? email_[0]?.name : customer_email);
+        formdata.append('transactionCode', transactionCode_);
+        formdata.append('status', data.status);
+
+        const res = await axios({
+            url: `https://boltspecta.com/posting.php`,
+            headers: formdata.getHeaders(),
+            method: 'POST',
+            data: formdata,
+        });
+
+        if(res?.status){
+            response.status(200).end();
+        }else{
+            response.status(500).end()
+        }
     }
 
 });
