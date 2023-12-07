@@ -5,11 +5,21 @@ const axios = require('axios');
 const { customAlphabet } = require("nanoid");
 const { GENERIC_DATA } = require("./data/generic-file");
 const FormData = require('form-data');
+const nodemailer = require('nodemailer');
 const cors = require('cors')({
     origin: "https://rig.vercel.app",
     credentials: true
 });
 admin.initializeApp()
+
+let transporter = nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    secure: true,
+    auth: {
+        user: process.env.NIGER_DIVE_EMAIL,
+        pass: process.env.NIGER_DIVE_EMAIL_PASSWORD
+    }
+});
 
 // CREATE APIS
 
@@ -18,14 +28,19 @@ exports.create_system = functions.https.onRequest(async (request, response) => {
         const { authorization } = request.headers
 
         if(!authorization){
-            return res.status(401).send({message: 'Unauthorized'})
+            return response.status(401).send({message: 'Unauthorized'})
         }
 
-        const decodedToken = await admin.auth().verifyIdToken(authorization)
+        let decodedToken
 
-        // if(new Date(decodedToken.exp) < new Date()){
-        //     return res.status(401).send({message: 'Unauthorized'})
-        // }
+        await admin.auth().verifyIdToken(authorization).then((decodedToken_) => {
+            decodedToken = decodedToken_
+        })
+        .catch((error) => {
+            return response.status(404).send({message: 'Unauthorized'})
+        });
+
+
 
         const systemName = request.body.name
 
@@ -74,14 +89,19 @@ exports.create_subfolder = functions.https.onRequest(async (request, response) =
         const { authorization } = request.headers
 
         if(!authorization){
-            return res.status(401).send({message: 'Unauthorized'})
+            return response.status(401).send({message: 'Unauthorized'})
         }
 
-        const decodedToken = await admin.auth().verifyIdToken(authorization)
+        let decodedToken
 
-        // if(new Date(decodedToken.exp) < new Date()){
-        //     return res.status(401).send({message: 'Unauthorized'})
-        // }
+        await admin.auth().verifyIdToken(authorization).then((decodedToken_) => {
+            decodedToken = decodedToken_
+        })
+        .catch((error) => {
+            return response.status(404).send({message: 'Unauthorized'})
+        });
+
+
         const subfolderName = request.body.name
 
         try {
@@ -129,14 +149,19 @@ exports.create_folder = functions.https.onRequest(async (request, response) => {
         const { authorization } = request.headers
 
         if(!authorization){
-            return res.status(401).send({message: 'Unauthorized'})
+            return response.status(401).send({message: 'Unauthorized'})
         }
 
-        const decodedToken = await admin.auth().verifyIdToken(authorization)
+        let decodedToken
 
-        // if(new Date(decodedToken.exp) < new Date()){
-        //     return res.status(401).send({message: 'Unauthorized'})
-        // }
+        await admin.auth().verifyIdToken(authorization).then((decodedToken_) => {
+            decodedToken = decodedToken_
+        })
+        .catch((error) => {
+            return response.status(404).send({message: 'Unauthorized'})
+        });
+
+
         const folderName = request.body.name
         const system_id = request.body.system
 
@@ -208,14 +233,19 @@ exports.create_file = functions.https.onRequest(async (request, response) => {
         const { authorization } = request.headers
 
         if(!authorization){
-            return res.status(401).send({message: 'Unauthorized'})
+            return response.status(401).send({message: 'Unauthorized'})
         }
 
-        const decodedToken = await admin.auth().verifyIdToken(authorization)
+        let decodedToken
 
-        // if(new Date(decodedToken.exp) < new Date()){
-        //     return res.status(401).send({message: 'Unauthorized'})
-        // }
+        await admin.auth().verifyIdToken(authorization).then((decodedToken_) => {
+            decodedToken = decodedToken_
+        })
+        .catch((error) => {
+            return response.status(404).send({message: 'Unauthorized'})
+        });
+
+
         const fileName = request.body.name
         const folder_id = request.body.folder
         const system_id = request.body.system
@@ -338,15 +368,26 @@ exports.create_user_access = functions.https.onRequest(async (request, response)
     cors(request, response, async () => {
         const { authorization } = request.headers
 
-        if(!authorization){
-            return res.status(401).send({message: 'Unauthorized'})
-        }
-
-        const decodedToken = await admin.auth().verifyIdToken(authorization)
-
-        // if(new Date(decodedToken.exp) < new Date()){
-        //     return res.status(401).send({message: 'Unauthorized'})
+        // if(!authorization){
+        //     return response.status(401).send({message: 'Unauthorized'})
         // }
+
+        // let decodedToken
+
+        // await admin.auth().verifyIdToken(authorization).then((decodedToken_) => {
+        //     decodedToken = decodedToken_
+        // })
+        // .catch((error) => {
+        //     return response.status(404).send({message: 'Unauthorized'})
+        // });
+
+        // const current_user_role = decodedToken?.role
+
+        // if(current_user_role?.toLowerCase() !== "admin"){
+        //     return response.status(404).send({message: 'Unauthorized'})
+        // }
+
+
 
         const name = request.body.name
         const email = request.body.email
@@ -386,29 +427,53 @@ exports.create_user_access = functions.https.onRequest(async (request, response)
             displayName: name,
             // photoURL: "http://www.example.com/12345678/photo.png",
             disabled: false,
-            role: role_name
+            // role: role_name
         })
         .then(async (userRecord) => {
             let system_names = []
+            const uid = userRecord.uid
 
-            const all_systems = await admin.firestore().collection('systems').where(`id`, "in", systems).get().then(snapshot => {
-                snapshot.forEach(doc => {
-                    const sys = doc.data()
-                    let system_permissions = sys.permissions || []
-                    system_names.push({
-                        id: sys.id,
-                        name: sys.name
-                    })
+            await admin.auth().setCustomUserClaims(uid, { role: role_name.toLowerCase()})
 
-                    doc.ref.update({
-                        permissions: system_permissions?.concat([userRecord.uid])
+            if(role_name?.toLowerCase() === "admin"){
+                const all_systems = await admin.firestore().collection('systems').get().then(snapshot => {
+                    snapshot.forEach(doc => {
+                        const sys = doc.data()
+                        let system_permissions = sys.permissions || []
+                        system_names.push({
+                            id: sys.id,
+                            name: sys.name
+                        })
+
+                        doc.ref.update({
+                            permissions: system_permissions?.concat([userRecord.uid])
+                        })
                     })
+                }).catch(err => {
+                    response.status(400)
+                    response.json({message: `Invalid system!`});
+                    throw new Error("Seems something went wrong!")
                 })
-            }).catch(err => {
-                response.status(400)
-                response.json({message: `Invalid system!`});
-                throw new Error("Seems something went wrong!")
-            })
+            }else{
+                const all_systems = await admin.firestore().collection('systems').where(`id`, "in", systems).get().then(snapshot => {
+                    snapshot.forEach(doc => {
+                        const sys = doc.data()
+                        let system_permissions = sys.permissions || []
+                        system_names.push({
+                            id: sys.id,
+                            name: sys.name
+                        })
+
+                        doc.ref.update({
+                            permissions: system_permissions?.concat([userRecord.uid])
+                        })
+                    })
+                }).catch(err => {
+                    response.status(400)
+                    response.json({message: `Invalid system!`});
+                    throw new Error("Seems something went wrong!")
+                })
+            }
 
             const payload = {
                 name: name,
@@ -422,11 +487,63 @@ exports.create_user_access = functions.https.onRequest(async (request, response)
                     name: role_name
                 }
             }
-            const writeResult = await admin.firestore().collection('guests').add(payload);
+            if(role_name?.toLowerCase() === "admin"){
+                delete payload.expiration
+                const writeResult = await admin.firestore().collection('admins').add(payload);
+            }else{
+                const writeResult = await admin.firestore().collection('guests').add(payload);
+            }
 
             console.log("Successfully created new user:", userRecord.uid);
 
+            const mailOptions = {
+                from: `NigerDive <${process.env.NIGER_DIVE_EMAIL}>`, // Something like: Jane Doe <janedoe@gmail.com>
+                to: email,
+                subject: 'NigerDive Access', // email subject
+                html: `<html>
+                        <head>
+                        <meta charset="UTF-8">
+                        <link href="https://fonts.googleapis.com/css2?family=Satoshi&display=swap" rel="stylesheet">
+                        <title>Welcome to NigerDive</title>
+                        </head>
+                        <body style="background-color:#f2f2f2; font-family:'Satoshi', Arial, sans-serif; font-size:14px; line-height:1.5; color:#333333;">
+                        <table style="max-width:600px; margin:0 auto; padding:20px; background-color:#ffffff; box-shadow:0px 4px 10px rgba(0,0,0,0.1); border-radius:5px;" align="center">
+                            <tr>
+                            <td style="text-align:center; margin-bottom:30px;">
+                                <img style="max-width:350px; height:auto; margin-top: 20px;" src="https://www.linkpicture.com/q/0-auto-x2-2-removebg-preview.png" alt="Your Logo">
+                                <h1 style="font-family:'Satoshi', Arial, sans-serif; font-size:25px; font-weight:600; color:#000; margin-top:50px;">Welcome to NigerDive</h1>
+                            </td>
+                            </tr>
+                            <tr>
+                            <td style="text-align:center; font-size:16px; font-weight:400; color:#555555; margin-bottom:30px;">
+                                <p style="padding-left: 10%; padding-right: 10%; font-weight: 100;">We're excited to have you as a new user. Your account has been created and here are your login details:</p>
+                                <div style="font-size:16px; font-weight:400; color:#4F84F6; margin:40px;">
+                                <p><strong>Email: ${email}</strong></p>
+                                <p><strong>Password: ${generatedPassword}</strong></p>
+                                </div>
+                                <p style="font-size:14px; font-weight:400; color:#333333; margin: 20px;">Kindly change your password after a successful login</p>
+                                <p style="text-align:center;">
+                                <a style="display:inline-block; padding:15px 80px; border:1px solid #4F84F6; border-radius:5px; font-family:'Satoshi', Arial, sans-serif; font-size:16px; font-weight:300; color:#4F84F6; text-decoration:none;" href="https://rig.vercel.app">Login here</a>
+                                </p>
+                            </td>
+                            </tr>
+                        </table>
+                        </body>
+                        </html>
+                ` // email content in HTML
+            };
+
+            return transporter.sendMail(mailOptions, (erro, info) => {
+                if(erro){
+                    console.log(erro)
+                    return response.json({message: `Successful`});
+                }
+                console.log("It was successful")
+                return response.json({message: `Successful`});
+            });
+
             response.json({message: `Successful`});
+
         })
         .catch(function(error) {
             console.log("Error creating new user:", error);
@@ -446,14 +563,19 @@ exports.update_file = functions.https.onRequest(async (request, response) => {
         const { authorization } = request.headers
 
         if(!authorization){
-            return res.status(401).send({message: 'Unauthorized'})
+            return response.status(401).send({message: 'Unauthorized'})
         }
 
-        const decodedToken = await admin.auth().verifyIdToken(authorization)
+        let decodedToken
 
-        // if(new Date(decodedToken.exp) < new Date()){
-        //     return res.status(401).send({message: 'Unauthorized'})
-        // }
+        await admin.auth().verifyIdToken(authorization).then((decodedToken_) => {
+            decodedToken = decodedToken_
+        })
+        .catch((error) => {
+            return response.status(404).send({message: 'Unauthorized'})
+        });
+
+
 
         const id = request.body.id
         const duration = request.body.duration //months
@@ -558,7 +680,7 @@ exports.get_expired_by_month = functions.https.onRequest(async (request, respons
         }
 
         if(month === 12){
-            end_month = 01
+            end_month = "01"
             end_year = year + 1
         }else{
             end_month = `${month > 9 ? "" : "0"}${month + 1}`
@@ -713,14 +835,19 @@ exports.get_recent_files = functions.https.onRequest(async (request, response) =
         const { authorization } = request.headers
 
         if(!authorization){
-            return res.status(401).send({message: 'Unauthorized'})
+            return response.status(401).send({message: 'Unauthorized'})
         }
 
-        const decodedToken = await admin.auth().verifyIdToken(authorization)
+        let decodedToken
 
-        // if(new Date(decodedToken.exp) < new Date()){
-        //     return res.status(401).send({message: 'Unauthorized'})
-        // }
+        await admin.auth().verifyIdToken(authorization).then((decodedToken_) => {
+            decodedToken = decodedToken_
+        })
+        .catch((error) => {
+            return response.status(404).send({message: 'Unauthorized'})
+        });
+
+
 
         const uid = decodedToken.uid
 
@@ -753,36 +880,40 @@ exports.get_recent_files = functions.https.onRequest(async (request, response) =
 
             const avail_systems = all_systems.map((val) => {return val?.id})
 
-            const files = await admin.firestore().collection('files').where('system', 'in', avail_systems).orderBy('created_at').limit(5).get().then(snapshot => {
-                snapshot.forEach(doc => {
-                    let file = doc.data()
-                    all_systems.map((val) => {
-                        if(val.id === file.system){
-                            file['system_name'] = val.name
-                        }
+            if(avail_systems.length > 0){
+                const files = await admin.firestore().collection('files').where('system', 'in', avail_systems).orderBy('created_at').limit(5).get().then(snapshot => {
+                    snapshot.forEach(doc => {
+                        let file = doc.data()
+                        all_systems.map((val) => {
+                            if(val.id === file.system){
+                                file['system_name'] = val.name
+                            }
+                        })
+                        all_folders.map((val) => {
+                            if(val.id === file.folder){
+                                file['folder_name'] = val.name
+                            }
+                        })
+                        all_subfolders.map((val) => {
+                            if(val.id === file.subfolder){
+                                file['subfolder_name'] = val.name
+                            }
+                        })
+                        file['created_at'] = file.created_at.toDate()
+                        delete file?.requirement
+                        delete file?.description
+                        delete file?.test_date
+                        delete file?.due_date
+                        delete file?.url
+                        delete file?.duration
+                        all_files.push(file)
                     })
-                    all_folders.map((val) => {
-                        if(val.id === file.folder){
-                            file['folder_name'] = val.name
-                        }
-                    })
-                    all_subfolders.map((val) => {
-                        if(val.id === file.subfolder){
-                            file['subfolder_name'] = val.name
-                        }
-                    })
-                    file['created_at'] = file.created_at.toDate()
-                    delete file?.requirement
-                    delete file?.description
-                    delete file?.test_date
-                    delete file?.due_date
-                    delete file?.url
-                    delete file?.duration
-                    all_files.push(file)
+                }).catch(err => {
+                    throw new Error(err)
                 })
-            }).catch(err => {
-                throw new Error(err)
-            })
+            }
+
+
         } catch (error) {
             console.log(error)
             throw new Error(error)
@@ -871,6 +1002,7 @@ exports.get_systems = functions.https.onRequest(async (request, response) => {
             const files = await admin.firestore().collection('systems').orderBy('created_at').get().then(snapshot => {
                 snapshot.forEach(doc => {
                     const system = doc.data()
+                    delete system.permissions
                     all_systems.push(system)
                 })
             }).catch(err => {
@@ -966,6 +1098,35 @@ exports.get_guests = functions.https.onRequest(async (request, response) => {
     })
 });
 
+exports.get_admins = functions.https.onRequest(async (request, response) => {
+    cors(request, response, async () => {
+
+        let all_guests = []
+
+        try {
+            const files = await admin.firestore().collection('admins').orderBy('created_at').get().then(snapshot => {
+                snapshot.forEach(doc => {
+                    const admin = doc.data()
+                    admin['created_at'] = admin.created_at.toDate()
+
+                    all_guests.push(admin)
+                })
+            }).catch(err => {
+                response.status(400)
+                response.json({message: `Error getting admins!`});
+                throw new Error(err)
+            })
+        } catch (error) {
+            response.status(400)
+            response.json({message: `Error getting admins!`});
+            throw new Error(error)
+        }
+
+        response.json({data: all_guests})
+
+    })
+});
+
 exports.get_roles = functions.https.onRequest(async (request, response) => {
     cors(request, response, async () => {
 
@@ -1050,14 +1211,19 @@ exports.get_dashboard = functions.https.onRequest(async (request, response) => {
         const { authorization } = request.headers
 
         if(!authorization){
-            return res.status(401).send({message: 'Unauthorized'})
+            return response.status(401).send({message: 'Unauthorized'})
         }
 
-        const decodedToken = await admin.auth().verifyIdToken(authorization)
+        let decodedToken
 
-        // if(new Date(decodedToken.exp) < new Date()){
-        //     return res.status(401).send({message: 'Unauthorized'})
-        // }
+        await admin.auth().verifyIdToken(authorization).then((decodedToken_) => {
+            decodedToken = decodedToken_
+        })
+        .catch((error) => {
+            return response.status(404).send({message: 'Unauthorized'})
+        });
+
+
 
         const uid = decodedToken.uid
 
@@ -1155,14 +1321,19 @@ exports.get_subfolders_by_folder = functions.https.onRequest(async (request, res
         const { authorization } = request.headers
 
         if(!authorization){
-            return res.status(401).send({message: 'Unauthorized'})
+            return response.status(401).send({message: 'Unauthorized'})
         }
 
-        const decodedToken = await admin.auth().verifyIdToken(authorization)
+        let decodedToken
 
-        // if(new Date(decodedToken.exp) < new Date()){
-        //     return res.status(401).send({message: 'Unauthorized'})
-        // }
+        await admin.auth().verifyIdToken(authorization).then((decodedToken_) => {
+            decodedToken = decodedToken_
+        })
+        .catch((error) => {
+            return response.status(404).send({message: 'Unauthorized'})
+        });
+
+
 
         const folder_id = request.body.id
 
@@ -1263,6 +1434,7 @@ exports.attach_system_id = functions.firestore.document('/systems/{documentId}')
     .onCreate(async (snap, context) => {
     //   const original = snap.data().name;
     const id = context.params.documentId
+    const permissions = []
     const folders = [
         "Dive Control", "Twinlock Air Chamber", "Diver Launch and Recovery",
         "Diving Basket", "Wet Bell", "Wet Bell Main Umbilical",
@@ -1279,7 +1451,16 @@ exports.attach_system_id = functions.firestore.document('/systems/{documentId}')
         await admin.firestore().collection('folders').add(payload);
     }
 
-    return snap.ref.set({id}, {merge: true});
+    const all_admins = await admin.firestore().collection('admins').get().then(snapshot => {
+        snapshot.forEach(doc => {
+            const admin = doc.data()
+            permissions.push(admin.user_id)
+        })
+    }).catch(err => {
+        console.log(err)
+    })
+
+    return snap.ref.set({id, permissions}, {merge: true});
 });
 
 exports.attach_subfolder_id = functions.firestore.document('/subfolders/{documentId}')
@@ -1351,64 +1532,4 @@ exports.attach_file_id = functions.firestore.document('/files/{documentId}')
     return snap.ref.set({id}, {merge: true});
 });
 
-exports.pyyr_hook = functions.https.onRequest(async (request, response) => {
-
-	/**
-	 * Restric this function to POST request Only
-	 * Respond with status code 500 for all GET request
-	 */
-	if (request.method !== 'POST') response.status(500).end();
-
-
-	const { body } = request;
-
-    const event = body.event
-    const data = body.data
-
-    const email_ = data?.items
-    const customer_email = data?.customer_detail?.email
-    const transactionCode = data?.meta_data?.reference
-    const transactionCode_ = data?.reference
-
-    if (data?.status === 'failed' && data?.payment_type === "payout") {
-        const formdata = new FormData();
-        formdata.append('email', data?.meta_data?.email);
-        formdata.append('cancelTransaction', transactionCode);
-
-        const res = await axios({
-            url: `https://boltspecta.com/posting.php`,
-            headers: formdata.getHeaders(),
-            method: 'POST',
-            data: formdata,
-        });
-
-        if(res?.status){
-            response.status(200).end();
-        }else{
-            response.status(500).end()
-        }
-    }else{
-        if (event !== 'payment.successful') {
-            response.status(200).end();
-        }
-
-        const formdata = new FormData();
-        formdata.append('email', email_ ? email_[0]?.name : customer_email);
-        formdata.append('transactionCode', transactionCode_);
-        formdata.append('status', data.status);
-
-        const res = await axios({
-            url: `https://boltspecta.com/posting.php`,
-            headers: formdata.getHeaders(),
-            method: 'POST',
-            data: formdata,
-        });
-
-        if(res?.status){
-            response.status(200).end();
-        }else{
-            response.status(500).end()
-        }
-    }
-
-});
+// -----------------------------------------------------------------------------------
